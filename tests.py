@@ -3,7 +3,7 @@ from formulae import *
 # SAMPLE AUTOMATA **************************************************************
 
 def auto_succ(v1, v2):
-    return {
+    return Automaton({
         "alphabet": frozenset(["0", "1"]),
         "initial": 1,
         "adjlist": {
@@ -22,10 +22,10 @@ def auto_succ(v1, v2):
                 ]
             }
         }
-    }
+    })
 
 def auto_eq(v1, v2):
-    return {
+    return Automaton({
         "alphabet": frozenset(["0", "1"]),
         "initial": 0,
         "adjlist": {
@@ -37,7 +37,9 @@ def auto_eq(v1, v2):
                 ]
             }
         }
-    }
+    })
 
-t = Eval(Exists("x", Exists("y", Exists("z", And(auto_succ("y", "z"), And(Neg(auto_eq("x", "y")), auto_succ("x", "z")))))))
+# the non-injectivity test for the successor function
+F = Exists("x", Exists("y", Exists("z", And(auto_succ("y", "z"), And(Neg(auto_eq("x", "y")), auto_succ("x", "z"))))))
+t = Eval(F)
 print(t)

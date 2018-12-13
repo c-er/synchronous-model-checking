@@ -1,41 +1,11 @@
 from collections import deque
 
-def auto_succ(v1, v2):
-    return {
-        "alphabet": frozenset(["0", "1"]),
-        "initial": 1,
-        "adjlist": {
-            1: {
-                "final": True,
-                "edges": [
-                    (0, {v1: "0", v2: "1"}),
-                    (1, {v1: "1", v2: "0"})
-                ]
-            },
-            0: {
-                "final": True,
-                "edges": [
-                    (1, {v1: "1", v2: "1"}),
-                    (0, {v1: "0", v2: "0"})
-                ]
-            }
-        }
-    }
-
-def auto_eq(v1, v2):
-    return {
-        "alphabet": frozenset(["0", "1"]),
-        "initial": 0,
-        "adjlist": {
-            0: {
-                "final": True,
-                "edges": [
-                    (0, {v1: "0", v2: "0"}),
-                    (0, {v1: "1", v2: "1"})
-                ]
-            }
-        }
-    }
+class Automaton:
+    def __init__(self, d, verify=False):
+        if verify:
+            # do verification of d
+            pass
+        self.aut = d
 
 def final_set(a):
     F = set()
@@ -90,7 +60,7 @@ def cleanup(aut):
     ret["alphabet"] = frozenset(alpha)
     return ret
 
-def disj(a, b):
+def product_bfs(a, b, disj=False):
     adjlist = {}
 
     q = deque([(a["initial"], b["initial"])])
@@ -102,8 +72,13 @@ def disj(a, b):
 
 
         if (asrc, bsrc) not in adjlist:
+            bol = False
+            if disj:
+                bol = a["adjlist"][asrc]["final"] or b["adjlist"][bsrc]["final"]
+            else:
+                bol = a["adjlist"][asrc]["final"] and b["adjlist"][bsrc]["final"]
             adjlist[(asrc, bsrc)] = {
-                "final": a["adjlist"][asrc]["final"] or b["adjlist"][bsrc]["final"],
+                "final": bol,
                 "edges": []
             }
 
@@ -120,36 +95,11 @@ def disj(a, b):
         "adjlist": adjlist
     })
 
+def disj(A, B):
+    return Automaton(product_bfs(A.aut, B.aut, disj=True))
 
-def conj(a, b):
-    adjlist = {}
-
-    q = deque([(a["initial"], b["initial"])])
-
-    while len(q) > 0:
-        asrc, bsrc = q.pop()
-        edges_a = a["adjlist"][asrc]["edges"]
-        edges_b = b["adjlist"][bsrc]["edges"]
-
-
-        if (asrc, bsrc) not in adjlist:
-            adjlist[(asrc, bsrc)] = {
-                "final": a["adjlist"][asrc]["final"] and b["adjlist"][bsrc]["final"],
-                "edges": []
-            }
-
-        for a_to, a_label in edges_a:
-            for b_to, b_label in edges_b:
-                e = edge_merge(a_label, b_label)
-                if e:
-                    adjlist[(asrc, bsrc)]["edges"].append(((a_to, b_to), e))
-                    if (a_to, b_to) not in adjlist:
-                        q.appendleft((a_to, b_to))
-
-    return cleanup({
-        "initial": (a["initial"], b["initial"]),
-        "adjlist": adjlist
-    })
+def conj(A, B):
+    return Automaton(product_bfs(A.aut, B.aut, disj=False))
 
 def all_alpha_tups(alpha, len):
     if len == 0:
@@ -205,13 +155,14 @@ def determinize(a):
         "adjlist": adjlist
     })
 
-def neg(a):
-    det = determinize(a)
+def neg(A):
+    det = determinize(A.aut)
     for v in det["adjlist"]:
         det["adjlist"][v]["final"] = not det["adjlist"][v]["final"]
-    return det
+    return Automaton(det)
 
-def exists(var, a):
+def exists(var, A):
+    a = A.aut
     ret = {
         "alphabet": a["alphabet"],
         "initial": a["initial"],
@@ -228,20 +179,13 @@ def exists(var, a):
             del d[var]
             ret["adjlist"][v]["edges"].append((e[0], d))
 
-    return ret
+    return Automaton(ret)
 
-def eval_truth(aut):
+def eval_truth(A):
+    aut = A.aut
     if len(vars_set(aut)) > 0:
         raise Exception("Trying to evaluate truth of automaton with tracks")
     for v in aut["adjlist"]:
         if aut["adjlist"][v]["final"]:
             return True
     return False
-
-xz = auto_succ("x", "z")
-yz = auto_succ("y", "z")
-xeqy = auto_eq("x", "y")
-xzyz = conj(xz, yz)
-xny = neg(xeqy)
-mat = conj(xzyz, xeqy)
-form = exists("x", exists("y", exists("z", mat)))
