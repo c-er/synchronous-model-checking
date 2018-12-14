@@ -1,7 +1,7 @@
 from collections import deque
 
 class Automaton:
-    def __init__(self, d={"alphabet": frozenset(), "adjlist": {}}, bval=None):
+    def __init__(self, d={"initial": frozenset(), "alphabet": frozenset(), "adjlist": {}}, bval=None):
         self.aut = d
         if isinstance(bval, bool):
             self.bval = bval
@@ -38,16 +38,6 @@ def vars_set(a):
 
     return frozenset(V)
 
-def edge_merge(label1, label2):
-    ret = {}
-    for k in label1:
-        if k in label2 and label1[k] != label2[k]:
-            return None
-        ret[k] = label1[k]
-    for k in label2:
-        ret[k] = label2[k]
-    return ret
-
 def cleanup(aut):
     num = 0
     d = {}
@@ -56,63 +46,77 @@ def cleanup(aut):
         d[k] = num
         num += 1
 
-    ret = {
-        "initial": frozenset(map(lambda x: d[x], aut["initial"])),
-        "adjlist": {}
-    }
+    ret = {}
 
     for k in aut["adjlist"]:
-        ret["adjlist"][d[k]] = {
-            "final": aut["adjlist"][k]["final"],
-            "edges": list(map(lambda x: (d[x[0]], x[1]), aut["adjlist"][k]["edges"]))
-        }
-
         for x in aut["adjlist"][k]["edges"]:
             for u in x[1]:
                 alpha.add(x[1][u])
 
     ret["alphabet"] = frozenset(alpha)
-    return ret
+    ret["adjlist"] = aut["adjlist"]
+    ret["initial"] = aut["initial"]
+    #print(rename_states(lambda k: d[k], ret))
+    return rename_states(lambda k: d[k], ret)
 
-def product_bfs(a, b, disj=False):
-    adjlist = {}
+def is_sublabel(p, l):
+    for k in p:
+        if k not in l or p[k] != l[k]:
+            return False
+    return True
 
-    q = deque()
-    init = set()
+def product(a, b):
+    ret = {
+        "alphabet": a["alphabet"] | b["alphabet"],
+        "adjlist": {}
+    }
+
+    q = set()
     for ai in a["initial"]:
         for bi in b["initial"]:
-            init.add((ai, bi))
-            q.append((ai, bi))
+            q.add((ai, bi))
+
+    ret["initial"] = frozenset(q)
+
+    labels = all_labels(vars_set(a) | vars_set(b), ret["alphabet"])
 
     while len(q) > 0:
         asrc, bsrc = q.pop()
-        edges_a = a["adjlist"][asrc]["edges"]
-        edges_b = b["adjlist"][bsrc]["edges"]
 
+        #print("Source", (asrc, bsrc))
 
-        if (asrc, bsrc) not in adjlist:
-            bol = False
-            if disj:
-                bol = a["adjlist"][asrc]["final"] or b["adjlist"][bsrc]["final"]
-            else:
-                bol = a["adjlist"][asrc]["final"] and b["adjlist"][bsrc]["final"]
-            adjlist[(asrc, bsrc)] = {
-                "final": bol,
+        if (asrc, bsrc) not in ret["adjlist"]:
+            ret["adjlist"][(asrc, bsrc)] = {
+                "final": a["adjlist"][asrc]["final"] and b["adjlist"][bsrc]["final"],
                 "edges": []
             }
 
-        for a_to, a_label in edges_a:
-            for b_to, b_label in edges_b:
-                e = edge_merge(a_label, b_label)
-                if e:
-                    adjlist[(asrc, bsrc)]["edges"].append(((a_to, b_to), e))
-                    if (a_to, b_to) not in adjlist:
-                        q.appendleft((a_to, b_to))
+        for l in labels:
+            verts_a = map(lambda e: e[0], filter(lambda e: is_sublabel(e[1], l), a["adjlist"][asrc]["edges"]))
+            verts_b = map(lambda e: e[0], filter(lambda e: is_sublabel(e[1], l), b["adjlist"][bsrc]["edges"]))
 
-    return cleanup({
-        "initial": frozenset(init),
-        "adjlist": adjlist
-    })
+            for va in verts_a:
+                for vb in verts_b:
+                    #print((asrc, bsrc), "-->", (va, vb), "via", l)
+                    ret["adjlist"][(asrc, bsrc)]["edges"].append(((va, vb), l))
+                    if (va, vb) not in ret["adjlist"]:
+                        q.add((va, vb))
+
+    #print("Retting", ret)
+    return cleanup(ret)
+
+def rename_states(f, aut):
+    ret = {
+        "initial": frozenset(map(f, aut["initial"])),
+        "alphabet": aut["alphabet"],
+        "adjlist": {}
+    }
+    for v in aut["adjlist"]:
+        ret["adjlist"][f(v)] = {
+            "final": aut["adjlist"][v]["final"],
+            "edges": list(map(lambda x: (f(x[0]), x[1]), aut["adjlist"][v]["edges"]))
+        }
+    return ret
 
 def disj(A, B, debug=0):
     if debug > 0:
@@ -146,12 +150,27 @@ def disj(A, B, debug=0):
             print(ret)
         return ret
 
-    a = determinize(A.aut)
-    b = determinize(B.aut)
+    k = A.num_states()
+    a = A.aut
+    b = rename_states(lambda v: v + k, B.aut)
+    tmp = dict(b["adjlist"])
+    tmp.update(a["adjlist"])
+    aut = {
+        "alphabet": a["alphabet"] | b["alphabet"],
+        "initial": a["initial"] | b["initial"],
+        "adjlist": tmp
+    }
 
-    aut = product_bfs(a, b, disj=True)
-    aut = determinize(aut)
-    is_deterministic(aut)
+    # some cleanup
+    labels = all_labels(vars_set(aut), aut["alphabet"])
+    for v in aut["adjlist"]:
+        newedges = []
+        for e in aut["adjlist"][v]["edges"]:
+            for l in labels:
+                if is_sublabel(e[1], l):
+                    newedges.append((e[0], l))
+        aut["adjlist"][v]["edges"] = newedges
+
     ret = Automaton(aut)
     if debug > 1:
         print(ret)
@@ -190,12 +209,11 @@ def conj(A, B, debug=0):
             print(ret)
         return ret
 
-    a = determinize(A.aut)
-    b = determinize(B.aut)
+    a = A.aut
+    b = B.aut
 
-    aut = product_bfs(a, b, disj=False)
-    aut = determinize(aut)
-    is_deterministic(aut)
+    aut = product(a, b)
+
     ret = Automaton(aut)
     if debug > 1:
         print(ret)
@@ -344,8 +362,4 @@ def exists(var, A, debug=0):
 def eval_truth(A, debug=0):
     if debug > 0:
         print("Evaluating. Machine currently has %d states" % A.num_states())
-    # if A.is_boolean():
-    #     return Automaton(bval=A.bval)
-    # else:
-    #     raise Exception("You did not enter a sentence. You probably have free variables.")
     return A
