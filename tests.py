@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from formulae import *
 
 # SAMPLE AUTOMATA **************************************************************
@@ -160,7 +161,7 @@ def auto_prefix(v1, v2):
 
 # ENTER YOUR TEST CASES HERE ***************************************************
 
-dbg_level = 1
+dbg_level = 0
 
 F = ForAll("x", ForAll("y", Implies(auto_eq("x", "y"), auto_eq("y", "x"))))
 print("Equality is symmetric:", Eval(F, debug=dbg_level))
