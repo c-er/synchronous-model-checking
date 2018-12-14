@@ -21,6 +21,7 @@ class Automaton:
         else:
             return "Automaton: " + str(self.aut)
 
+# returns the set of final states in a
 def final_set(a):
     F = set()
 
@@ -30,6 +31,7 @@ def final_set(a):
 
     return frozenset(F)
 
+# returns the set of all trakcs in a
 def vars_set(a):
     V = set()
     for k in a["adjlist"]:
@@ -38,6 +40,7 @@ def vars_set(a):
 
     return frozenset(V)
 
+# cleans some stuff up to maintain internal invariants
 def cleanup(aut):
     num = 0
     d = {}
@@ -59,12 +62,14 @@ def cleanup(aut):
     #print(rename_states(lambda k: d[k], ret))
     return rename_states(lambda k: d[k], ret)
 
+# returns true iff p is a sublabel of l
 def is_sublabel(p, l):
     for k in p:
         if k not in l or p[k] != l[k]:
             return False
     return True
 
+# compute the product automaton via the closure algorithm
 def product(a, b):
     ret = {
         "alphabet": a["alphabet"] | b["alphabet"],
@@ -105,6 +110,7 @@ def product(a, b):
     #print("Retting", ret)
     return cleanup(ret)
 
+# rename the states in aut according to the function f
 def rename_states(f, aut):
     ret = {
         "initial": frozenset(map(f, aut["initial"])),
@@ -118,6 +124,7 @@ def rename_states(f, aut):
         }
     return ret
 
+# compute the disjunction of automata A and B
 def disj(A, B, debug=0):
     if debug > 0:
         print("Orring machines of size %d and %d" % (A.num_states(), B.num_states()))
@@ -176,6 +183,7 @@ def disj(A, B, debug=0):
         print(ret)
     return ret
 
+# compute the conjunction of automata A and B
 def conj(A, B, debug=0):
     if debug > 0:
         print("Anding machines of size %d and %d" % (A.num_states(), B.num_states()))
@@ -230,6 +238,7 @@ def all_alpha_tups(alpha, len):
                 L.append((a,) + u)
         return L
 
+# generate all possible labels with the given tracks and alphabet
 def all_labels(vars, alpha):
     L = all_alpha_tups(alpha, len(vars))
     S = []
@@ -242,6 +251,7 @@ def all_labels(vars, alpha):
         S.append(d)
     return S
 
+# check if the given automaton is deterministic
 def is_deterministic(a):
     if(len(a["initial"]) != 1):
         print("ERROR: too many initial states")
@@ -257,6 +267,7 @@ def is_deterministic(a):
                 return False
     return True
 
+# determininze via closure algorithm
 def determinize(a):
     adjlist = {}
 
@@ -291,6 +302,7 @@ def determinize(a):
         "adjlist": adjlist
     })
 
+# negate the given automaton
 def neg(A, debug=0):
     if debug > 0:
         print("Negating. Machine currently has %d states" % A.num_states())
@@ -310,6 +322,7 @@ def neg(A, debug=0):
         print(ret)
     return ret
 
+# handle existential quantifier by deleting a track
 def exists(var, A, debug=0):
     if debug > 0:
         print("Projecting. Machine currently has %d states" % A.num_states())
@@ -359,6 +372,7 @@ def exists(var, A, debug=0):
         print(ret)
     return ret
 
+# this isn't even used anymore
 def eval_truth(A, debug=0):
     if debug > 0:
         print("Evaluating. Machine currently has %d states" % A.num_states())

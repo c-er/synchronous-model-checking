@@ -126,12 +126,41 @@ def auto_rule90(v1, v2):
 
     return susp
 
+# the prefix automaton - accepts iff string on tape v1 is a prefix of the
+# string on tape v2
+def auto_prefix(v1, v2):
+    d = {
+        "alphabet": frozenset(["0", "1", "#"]),
+        "initial": frozenset([0]),
+        "adjlist": {
+            0: {
+                "final": True,
+                "edges": [
+                    (0, {v1: "0", v2: "0"}),
+                    (0, {v1: "1", v2: "1"}),
+                    (1, {v1: "#", v2: "0"}),
+                    (1, {v1: "#", v2: "1"}),
+                ]
+            },
+            1: {
+                "final": True,
+                "edges": [
+                    (1, {v1: "#", v2: "0"}),
+                    (1, {v1: "#", v2: "1"}),
+                    (1, {v1: "#", v2: "#"}),
+                ]
+            }
+        }
+    }
+    def susp(debug=0):
+        if debug > 1:
+            print("Auto_prefix", d)
+        return Automaton(d)
+    return susp
+
 # ENTER YOUR TEST CASES HERE ***************************************************
 
-dbg_level = 2
-
-F = ForAll("x", auto_eq("x", "x"))
-print("Equality is reflexive:", Eval(F, debug=dbg_level))
+dbg_level = 1
 
 F = ForAll("x", ForAll("y", Implies(auto_eq("x", "y"), auto_eq("y", "x"))))
 print("Equality is symmetric:", Eval(F, debug=dbg_level))
@@ -139,14 +168,17 @@ print("Equality is symmetric:", Eval(F, debug=dbg_level))
 F = ForAll("x", ForAll("y", ForAll("z", Implies(And(auto_eq("x", "y"), auto_eq("y", "z")), auto_eq("x", "z")))))
 print("Equality is transitive:", Eval(F, debug=dbg_level))
 
-F = ForAll("x", Neg(auto_eq("x", "x")))
-print("Inequality is reflexive:", Eval(F, debug=dbg_level))
-
 F = ForAll("x", ForAll("y", Implies(Neg(auto_eq("x", "y")), Neg(auto_eq("y", "x")))))
 print("Inequality is symmetric:", Eval(F, debug=dbg_level))
 
 F = ForAll("x", ForAll("y", ForAll("z", Implies(And(Neg(auto_eq("x", "y")), Neg(auto_eq("y", "z"))), Neg(auto_eq("x", "z"))))))
 print("Inequality is transitive:", Eval(F, debug=dbg_level))
+
+F = ForAll("x", ForAll("y", Implies(auto_prefix("x", "y"), auto_prefix("y", "x"))))
+print("Prefix is symmetric:", Eval(F, debug=dbg_level))
+
+F = ForAll("x", ForAll("y", ForAll("z", Implies(And(auto_prefix("x", "y"), auto_prefix("y", "z")), auto_prefix("x", "z")))))
+print("Prefix is transitive:", Eval(F, debug=dbg_level))
 
 F = ForAll("x", ForAll("y", ForAll("z", Implies(And(auto_succ("x", "y"), auto_succ("x", "z")), auto_eq("y", "z")))))
 print("Successor relation is a function:", Eval(F, debug=dbg_level))

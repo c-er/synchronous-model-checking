@@ -1,0 +1,9 @@
+automata.py: automaton manipulation routines
+
+formulae.py: wrapper routines for constructing first-order formulae
+
+tests.py: some automata for testing, a number of test cases. edit this file
+to use the package
+
+explanation.pdf: contains a detailed explanation of how to use the package
+and the implementation details
