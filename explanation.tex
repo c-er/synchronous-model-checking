@@ -102,6 +102,13 @@ verbosity. The default is $0$ which prints nothing. If you pass $1$, it will pri
 the computations being performed and the size of the automaton at each step. If
 you pass $2$, it will print everything included in $1$ along with all intermediate automata.
 
+\subsection*{Cellular Automata}
+Some of the tests included in \code{tests.py} involve model checking on
+cellular automata. As written, they run on the rule 90 cellular automaton,
+but this is easy to change. The function \code{rho90} in \code{tests.py} contains the definition
+of the rule 90 cellular automaton, but you can change it to a different rule.
+The tests will update automatically.
+
 \subsection*{Putting it all together}
 To try it yourself, we recommend you edit \code{tests.py} directly. There are a few useful
 automata already defined there for your use, and a few examples that you can use to learn
