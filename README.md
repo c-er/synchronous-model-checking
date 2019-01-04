@@ -25,6 +25,7 @@ can ask that are included in the `tests.py` file include:
 - Are these relations functions?
 - If these relations are functions, are they injective? Surjective?
 - For fixed k, is there a k-cycle? That is, are there k distinct points x_1, ..., x_k such that x_i is related to x_{i + 1}, for each i?
+
 Of course, these questions only have to do with binary relations, but relations of any arity work, and they can be mixed. For instance,
 in `tests.py`, we verify that 1 + 1 = 2, which involves the 2-ary successor relation and the 1-ary "equal to (the constant) 2" relation. 
 
